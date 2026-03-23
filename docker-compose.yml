@@ -1,0 +1,28 @@
+version: '3.8'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    environment: [ "discovery.type=single-node" ]
+    ports: [ "9200:9200" ]
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.17.0
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    depends_on: [ elasticsearch ]
+
+  relay:
+    image: node:16-slim
+    working_dir: /app
+    command: >
+      sh -c "npm install ws axios && node index.js"
+    environment:
+      - LOGSTASH_URL=http://logstash:8080
+    volumes:
+      - ./relay:/app
+    ports: [ "8081:8081" ]
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.0
+    ports: [ "5601:5601" ]
+    depends_on: [ elasticsearch ]
